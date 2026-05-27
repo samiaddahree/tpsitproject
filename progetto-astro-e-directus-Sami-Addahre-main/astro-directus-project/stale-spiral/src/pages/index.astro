@@ -1,0 +1,191 @@
+---
+import directus from '../lib/directus';
+import { readItems } from '@directus/sdk';
+
+let messaggi = [];
+try {
+  const risposta = await directus.request(readItems('messaggi'));
+  messaggi = Array.isArray(risposta) ? risposta : (risposta.data || []);
+} catch (e) {
+  console.error("Errore caricamento:", e);
+}
+---
+
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice of the Wall</title>
+  <link href="https://googleapis.com" rel="stylesheet">
+  
+  <style>
+    body { 
+      background-color: #f8f1e7; /* Colore di sfondo neutro per far risaltare la palette */
+      font-family: 'Archivo Black', sans-serif;
+      margin: 0;
+      padding: 60px 20px;
+      color: #333;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; text-align: center; }
+
+    /* TITOLO COLLAGE CON LA TUA PALETTE */
+    .titolo-collage {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 100px;
+      flex-wrap: wrap;
+    }
+
+    .word-block {
+      display: inline-block;
+      padding: 15px 35px;
+      font-size: 5rem;
+      text-transform: uppercase;
+      line-height: 1;
+      border: 7px solid #000;
+      color: #000;
+      position: relative;
+    }
+
+    /* Voice: #ED4D6E | of the: #DB6C79 | Wall: #C0DF85 */
+    .voice { 
+      background-color: #ED4D6E; 
+      color: white; 
+      transform: rotate(-3deg); 
+      z-index: 1; 
+      margin-right: -25px; 
+    }
+    
+    .of-the { 
+      background-color: #DB6C79; 
+      color: white;
+      font-size: 2.2rem; 
+      transform: rotate(2deg) translateY(-10px); 
+      z-index: 3; 
+      margin-right: -25px; 
+      padding: 10px 20px;
+    }
+    
+    .wall { 
+      background-color: #C0DF85; 
+      transform: rotate(-1.5deg); 
+      z-index: 2; 
+      padding-left: 45px; 
+    }
+
+    /* FORM CONTAINER */
+    .form-container { 
+      background: #fff; 
+      padding: 40px; 
+      border: 6px solid #000;
+      box-shadow: 15px 15px 0px #000;
+      max-width: 650px;
+      margin: 0 auto 100px auto;
+    }
+
+    textarea { 
+      width: 100%; padding: 15px; border: 4px solid #000;
+      font-size: 1.2rem; font-family: 'Roboto Mono', monospace;
+      box-sizing: border-box; background: #fff;
+    }
+
+    .controlli { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; }
+
+    select, button { 
+      border: 4px solid #000; 
+      font-family: 'Archivo Black', sans-serif; 
+      text-transform: uppercase; 
+      cursor: pointer; 
+    }
+
+    button { 
+      background-color: #000; 
+      color: #fff; 
+      padding: 12px 40px; 
+      font-size: 1.4rem; 
+      box-shadow: 6px 6px 0px #000;
+    }
+
+    /* IL MURO - Utilizza gli altri colori della palette: #DEB986 e #7DDF64 */
+    .muro { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; }
+
+    .post-it { 
+      width: 260px; min-height: 260px; padding: 30px; border: 6px solid #000;
+      box-shadow: 12px 12px 0px #000; font-family: 'Roboto Mono', monospace; 
+      font-size: 1.3rem; font-weight: 700; display: flex; 
+      align-items: center; justify-content: center; text-align: center;
+      word-break: break-word;
+    }
+
+    /* Alternanza colori post-it basata sulla tua palette */
+    .post-it:nth-child(3n+1) { background-color: #DEB986; } 
+    .post-it:nth-child(3n+2) { background-color: #7DDF64; } 
+    .post-it:nth-child(3n+3) { background-color: #fff; }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- TITOLO SOVRAPPOSTO CON #ED4D6E, #DB6C79, #C0DF85 -->
+    <div class="titolo-collage">
+        <span class="word-block voice">Voice</span>
+        <span class="word-block of-the">of the</span>
+        <span class="word-block wall">Wall</span>
+    </div>
+
+    <div class="form-container">
+      <textarea id="testo" placeholder="SCRIVI IL TUO MESSAGGIO..." rows="3"></textarea>
+      <div class="controlli">
+        <select id="colore">
+          <option value="#ED4D6E">ROSA VIVO</option>
+          <option value="#DEB986">SABBIA</option>
+          <option value="#7DDF64">VERDE MELA</option>
+        </select>
+        <button id="btn-invia">POSTA!</button>
+      </div>
+    </div>
+
+    <div class="muro">
+      {messaggi.map((m) => (
+        <div class="post-it" style={`background-color: ${m.colore}`}>
+          <p>{m.testo}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <script>
+    const DIRECTUS_URL = 'https://curly-space-waddle-g47x9qpw6564hv4xx-8055.app.github.dev'; 
+
+    const btn = document.getElementById('btn-invia');
+    btn?.addEventListener('click', async () => {
+      const testoInput = document.getElementById('testo') as HTMLTextAreaElement;
+      const colore = (document.getElementById('colore') as HTMLSelectElement).value;
+      const testo = testoInput.value;
+
+      if (!testo.trim()) return alert("SCRIVI QUALCOSA.");
+
+      try {
+        const response = await fetch(`${DIRECTUS_URL}/items/messaggi`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ testo, colore })
+        });
+
+        if (response.ok) {
+          testoInput.value = "";
+          window.location.reload(); 
+        } else {
+          alert("ERRORE NEL DATABASE.");
+        }
+      } catch (err) {
+        alert("ERRORE DI CONNESSIONE.");
+      }
+    });
+  </script>
+</body>
+</html>
